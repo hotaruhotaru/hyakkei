@@ -42,7 +42,7 @@ color:var(--sumi);line-height:2;letter-spacing:.05em;font-size:1.1rem;line-break
 .pane{flex:1;position:relative;transition:transform 1.1s cubic-bezier(.8,0,.15,1);
 background:radial-gradient(ellipse at 50% 35%,#6c5830 0,#3f3018 75%),#3a2b15;
 box-shadow:inset 0 0 0 .9rem var(--lacq),inset 0 0 140px rgba(0,0,0,.7)}
-.pane::after{content:"";position:absolute;top:50%;width:2.6rem;height:2.6rem;margin-top:-1.3rem;border-radius:50%;background:radial-gradient(circle,#3a2a12 0 35%,var(--gold) 36% 50%,#1a1209 51%)}
+.pane::after{content:"absolute;top:50%;width:2.6rem;height:2.6rem;margin-top:-1.3rem;border-radius:50%;background:radial-gradient(circle,#3a2a12 0 35%,var(--gold) 36% 50%,#1a1209 51%)}
 .l::after{right:3rem}.r::after{left:3rem}
 .ttl{position:absolute;right:22%;top:50%;transform:translateY(-50%);writing-mode:vertical-rl;color:var(--ink-l);text-shadow:0 2px 14px #000;display:flex;gap:1.2rem}
 .ttl b{font-size:clamp(1.9rem,5vw,3.4rem);font-weight:900;letter-spacing:.3em}
@@ -114,7 +114,18 @@ figure{height:auto;width:min(100%,calc(78dvh*2/3));margin:0 auto;box-shadow:none
 <p>御台所は大奥の最高権威の象徴だった。しかし日々の運営で実権を握ったのは、御年寄などの女中たちだったとされる。京の公家や宮家から迎えられた御台所も多く、厳格な儀礼としきたりの中で、自由の少ない暮らしを送った。華やかな装いの裏には、そうした重い立場がある。</p>
 </section></div>
 </article>
-<p class="hint"><button id="nx" type="button" aria-label="次のページ">← 次へ</button><span id="pn">1 / 7</span><button id="pv" type="button" aria-label="前のページ">前へ →</button></p><div class="util"><p class="fine">※本ビジュアルはAIによるイメージであり、史実の装束を再現したものではありません。</p><button id="snd2" type="button" aria-pressed="true">音：入</button><button id="cls" type="button">襖を閉じる</button></div>
+<p class="hint">
+  <button id="nx" type="button" aria-label="次のページ">← 次へ</button>
+  <span id="pn">1 / 7</span>
+  <button id="pv" type="button" aria-label="前のページ">前へ →</button>
+</p>
+<div class="util">
+  <!-- ここに音声読み上げボタンを追加しました -->
+  <button id="readBtn" type="button">解説をよむ</button>
+  <p class="fine">※本ビジュアルはAIによるイメージであり、史実の装束を再現したものではありません。</p>
+  <button id="snd2" type="button" aria-pressed="true">音：入</button>
+  <button id="cls" type="button">襖を閉じる</button>
+</div>
 </div>
 </main>
 <button class="door" id="door" aria-label="襖を開けて入る">
@@ -130,6 +141,61 @@ figure{height:auto;width:min(100%,calc(78dvh*2/3));margin:0 auto;box-shadow:none
 var st=document.getElementById('stage'),gal=document.getElementById('gal'),door=document.getElementById('door'),
 snd=document.getElementById('snd'),cls=document.getElementById('cls'),on=true;
 var snd2=document.getElementById('snd2');function tg(){on=!on;[snd,snd2].forEach(function(b){b.textContent=on?'音：入':'音：切';b.setAttribute('aria-pressed',on)})}snd.onclick=tg;snd2.onclick=tg;
+
+// --- ▼ ここから 音声読み上げ用の処理 ▼ ---
+var readBtn = document.getElementById('readBtn');
+var synth = window.speechSynthesis;
+var isSpeaking = false;
+
+function getCurrentText() {
+    var textToRead = "";
+    var currentPg = document.querySelector('.pg.on');
+    if (currentPg) {
+        // 現在表示されているページ内のテキストを抽出（リード文は不要なら外すことも可能）
+        var elements = currentPg.querySelectorAll('h1, h2, h3, p'); 
+        elements.forEach(function(el) {
+            textToRead += el.textContent + "。"; 
+        });
+    }
+    return textToRead;
+}
+
+function speakText() {
+    if (synth.speaking) {
+        synth.cancel();
+        isSpeaking = false;
+        readBtn.textContent = '解説をよむ';
+        return;
+    }
+
+    var text = getCurrentText();
+    if (text !== "") {
+        var utterThis = new SpeechSynthesisUtterance(text);
+        utterThis.lang = 'ja-JP';
+        utterThis.rate = 0.9;  // 大奥の雰囲気に合わせて少しゆっくり
+        utterThis.pitch = 0.8; // 少し低めの落ち着いた声に設定
+
+        utterThis.onend = function(event) {
+            isSpeaking = false;
+            readBtn.textContent = '解説をよむ';
+        };
+        utterThis.onerror = function(event) {
+            isSpeaking = false;
+            readBtn.textContent = '解説をよむ';
+        };
+
+        synth.speak(utterThis);
+        isSpeaking = true;
+        readBtn.textContent = 'よみあげ停止';
+    }
+}
+
+if (readBtn) {
+    readBtn.addEventListener('click', speakText);
+}
+// --- ▲ ここまで 音声読み上げ用の処理 ▲ ---
+
+
 function sound(){
  if(!on)return;
  try{
@@ -158,7 +224,18 @@ function close(){
 door.onclick=open;cls.onclick=close;
 var pp=document.querySelector('.paper');
 var pgs=[].slice.call(pp.querySelectorAll('.pg')),cur=0,nx=document.getElementById('nx'),pv=document.getElementById('pv'),pn=document.getElementById('pn'),lock=0,tx=0,ty=0,wi=0,ci=0;
-function go(i){cur=Math.max(0,Math.min(pgs.length-1,i));pgs.forEach(function(p,k){p.classList.toggle('on',k===cur)});pp.scrollLeft=0;pn.textContent=(cur+1)+' / '+pgs.length;var last=cur===pgs.length-1;nx.disabled=false;nx.classList.toggle('nxw',last);nx.textContent=(last&&W)?'← 次の人物：'+W[(wi+1)%W.length].n:'← 次へ';pv.disabled=cur===0;var w=W&&W[wi];if(w&&w.pm&&w.s.length>1&&w.pm[cur]!==ci)show(wi,w.pm[cur],true)}
+
+function go(i){
+ // ▼ ページが切り替わったら読み上げをリセットする処理を追加
+ if (synth && synth.speaking) {
+    synth.cancel();
+    isSpeaking = false;
+    if(readBtn) readBtn.textContent = '解説をよむ';
+ }
+ // ▲
+ cur=Math.max(0,Math.min(pgs.length-1,i));pgs.forEach(function(p,k){p.classList.toggle('on',k===cur)});pp.scrollLeft=0;pn.textContent=(cur+1)+' / '+pgs.length;var last=cur===pgs.length-1;nx.disabled=false;nx.classList.toggle('nxw',last);nx.textContent=(last&&W)?'← 次の人物：'+W[(wi+1)%W.length].n:'← 次へ';pv.disabled=cur===0;var w=W&&W[wi];if(w&&w.pm&&w.s.length>1&&w.pm[cur]!==ci)show(wi,w.pm[cur],true)
+}
+
 nx.onclick=function(){if(cur>=pgs.length-1)setWork((wi+1)%W.length);else go(cur+1)};pv.onclick=function(){go(cur-1)};
 pp.addEventListener('wheel',function(e){e.preventDefault();var n=Date.now();if(n-lock<450||Math.abs(e.deltaY)<8)return;lock=n;go(cur+(e.deltaY>0?1:-1))},{passive:false});
 pp.addEventListener('touchstart',function(e){tx=e.touches[0].clientX;ty=e.touches[0].clientY},{passive:true});
